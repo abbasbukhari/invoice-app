@@ -51,7 +51,9 @@ export function formatCurrency(amount) {
  */
 export function calcDueDate(invoiceDate, paymentTerms) {
   if (!invoiceDate) return '';
-  const days = parseInt((paymentTerms || 'Net 30').replace(/\D/g, '')) || 30;
+  const term = (paymentTerms || 'Net 30').toLowerCase();
+  if (term === 'due on receipt') return invoiceDate;
+  const days = parseInt(term.replace(/\D/g, '')) || 30;
   const date = new Date(invoiceDate);
   date.setDate(date.getDate() + days);
   return date.toISOString().split('T')[0];
