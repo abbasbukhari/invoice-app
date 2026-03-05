@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import CompanySetup from './components/CompanySetup';
 import InvoiceForm from './components/InvoiceForm';
 import InvoicePreview, { PREVIEW_ELEMENT_ID } from './components/InvoicePreview';
+import HowToUse from './components/HowToUse';
 import { downloadInvoicePDF } from './utils/pdfGenerator';
 import { loadCompanyInfo, loadSettings } from './utils/storage';
 
 const TABS = [
   { id: 'company', label: 'Company Setup' },
   { id: 'invoice', label: 'Create Invoice' },
+  { id: 'help', label: 'How to Use' },
 ];
 
 export default function App() {
@@ -131,6 +133,10 @@ export default function App() {
           <div className="max-w-lg mx-auto px-4 py-8">
             <CompanySetup />
           </div>
+        )}
+
+        {activeTab === 'help' && (
+          <HowToUse />
         )}
 
         {activeTab === 'invoice' && (
