@@ -1,29 +1,52 @@
 import { formatCurrency } from '../utils/calculations';
 
+const SERVICE_TYPES = ['Service', 'Expense'];
+
 export default function ServiceRow({ service, index, onChange, onRemove, canRemove }) {
   const lineTotal = (parseFloat(service.quantity) || 0) * (parseFloat(service.rate) || 0);
 
   return (
-    <div className="grid grid-cols-12 gap-2 items-start">
-      {/* Description */}
-      <div className="col-span-12 sm:col-span-5">
-        {index === 0 && (
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
-        )}
+    <div className={`grid gap-2 items-start ${canRemove ? 'grid-cols-[80px_100px_1fr_70px_80px_80px_28px]' : 'grid-cols-[80px_100px_1fr_70px_80px_80px]'}`}>
+      {/* Type */}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>}
+        <select
+          value={service.type || 'Service'}
+          onChange={(e) => onChange(index, 'type', e.target.value)}
+          className="w-full border border-gray-300 rounded px-2 py-2 text-xs focus:outline-none focus:border-gray-600 bg-white"
+        >
+          {SERVICE_TYPES.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Date */}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Date</label>}
+        <input
+          type="date"
+          value={service.date || ''}
+          onChange={(e) => onChange(index, 'date', e.target.value)}
+          className="w-full border border-gray-300 rounded px-2 py-2 text-xs focus:outline-none focus:border-gray-600"
+        />
+      </div>
+
+      {/* Notes / Description */}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Notes / Description</label>}
         <input
           type="text"
           value={service.description}
           onChange={(e) => onChange(index, 'description', e.target.value)}
-          placeholder="Service description"
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+          placeholder="Service or expense description"
+          className="w-full border border-gray-300 rounded px-2 py-2 text-xs focus:outline-none focus:border-gray-600"
         />
       </div>
 
       {/* Quantity */}
-      <div className="col-span-4 sm:col-span-2">
-        {index === 0 && (
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Qty</label>
-        )}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Qty / Hrs</label>}
         <input
           type="number"
           min="0"
@@ -31,15 +54,13 @@ export default function ServiceRow({ service, index, onChange, onRemove, canRemo
           value={service.quantity}
           onChange={(e) => onChange(index, 'quantity', e.target.value)}
           placeholder="1"
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+          className="w-full border border-gray-300 rounded px-2 py-2 text-xs focus:outline-none focus:border-gray-600"
         />
       </div>
 
       {/* Rate */}
-      <div className="col-span-4 sm:col-span-3">
-        {index === 0 && (
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Rate ($)</label>
-        )}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Rate ($)</label>}
         <input
           type="number"
           min="0"
@@ -47,34 +68,31 @@ export default function ServiceRow({ service, index, onChange, onRemove, canRemo
           value={service.rate}
           onChange={(e) => onChange(index, 'rate', e.target.value)}
           placeholder="0.00"
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+          className="w-full border border-gray-300 rounded px-2 py-2 text-xs focus:outline-none focus:border-gray-600"
         />
       </div>
 
       {/* Total */}
-      <div className="col-span-3 sm:col-span-2">
-        {index === 0 && (
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Total</label>
-        )}
-        <div className="border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm text-gray-700 font-medium">
-          {formatCurrency(lineTotal)}
+      <div>
+        {index === 0 && <label className="block text-xs font-semibold text-gray-600 mb-1">Total</label>}
+        <div className="border border-gray-200 bg-gray-50 rounded px-2 py-2 text-xs text-gray-700 font-medium text-right">
+          {lineTotal > 0 ? formatCurrency(lineTotal) : '—'}
         </div>
       </div>
 
-      {/* Remove Button */}
-      <div className={`col-span-1 flex ${index === 0 ? 'items-end pb-0.5' : 'items-start'}`}>
-        {index === 0 && <div className="h-5 mb-1" />}
-        {canRemove && (
+      {/* Remove */}
+      {canRemove && (
+        <div className={index === 0 ? 'pt-5' : 'pt-0'}>
           <button
             type="button"
             onClick={() => onRemove(index)}
-            className="text-red-400 hover:text-red-600 text-lg leading-none px-1 mt-1"
+            className="text-red-400 hover:text-red-600 text-lg leading-none w-7 h-8 flex items-center justify-center"
             title="Remove row"
           >
             ×
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

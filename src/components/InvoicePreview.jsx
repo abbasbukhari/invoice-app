@@ -2,10 +2,22 @@ import { formatCurrency, formatDate } from '../utils/calculations';
 
 export const PREVIEW_ELEMENT_ID = 'invoice-preview-render';
 
+// Matches the approved Google Sheets design:
+// - RED (#CC0000) = "INVOICE" title, table header bg, Total row text, divider bar
+// - BLACK = company name, section labels, all data
+// - WHITE = all backgrounds
+// - LIGHT GREY (#F2F2F2) = alternating service rows
+// - MID GREY (#CCCCCC) = borders
+
+const RED   = '#CC0000';
+const BLACK = '#000000';
+const LGREY = '#F2F2F2';
+const MGREY = '#CCCCCC';
+
 export default function InvoicePreview({ invoice, company, settings }) {
   if (!invoice || !company) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-64 text-gray-400 text-sm bg-white">
         Fill in the form to see your invoice preview.
       </div>
     );
@@ -19,6 +31,8 @@ export default function InvoicePreview({ invoice, company, settings }) {
     clientPhone = '',
     clientEmail = '',
     clientAddress = '',
+    matterReference = '',
+    matterName = '',
     services = [],
     subtotal = 0,
     taxAmount = 0,
@@ -27,120 +41,159 @@ export default function InvoicePreview({ invoice, company, settings }) {
   } = invoice;
 
   const {
-    name: companyName = 'Your Company',
+    name: companyName = '',
     tagline = '',
     email: companyEmail = '',
     phone: companyPhone = '',
     logoUrl = '',
+    accountName = '',
   } = company;
 
   const {
-    paymentMethod = 'EMT (e-Transfer)',
+    paymentMethod = '',
     satisfactionGuarantee = '',
   } = settings || {};
 
   const taxPct = Math.round((taxRate || 0.13) * 100);
+  const quantitySubtotal = services.reduce((sum, s) => sum + (parseFloat(s.quantity) || 0), 0);
 
   return (
     <div
       id={PREVIEW_ELEMENT_ID}
-      className="bg-white text-black font-sans text-sm"
-      style={{ minWidth: 480 }}
+      style={{ backgroundColor: '#FFFFFF', color: BLACK, fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 11 }}
     >
-      {/* Header */}
-      <div className="flex justify-between items-start p-8 pb-6">
+      {/* ══ ROW 2: Logo + INVOICE title ══ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '28px 28px 16px 28px' }}>
         {/* Left: Logo + Company */}
-        <div className="flex-1">
+        <div style={{ flex: 1 }}>
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-14 w-auto object-contain mb-2" />
+            <img
+              src={logoUrl}
+              alt="Logo"
+              style={{ height: 52, width: 'auto', objectFit: 'contain', display: 'block', marginBottom: 6 }}
+            />
           ) : (
-            <div className="text-2xl font-black text-black mb-1">{companyName}</div>
+            <div style={{
+              width: 72, height: 52, border: `1px solid ${MGREY}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 8, color: RED, marginBottom: 6,
+            }}>
+              YOUR LOGO
+            </div>
           )}
-          {logoUrl && <div className="text-base font-bold text-black">{companyName}</div>}
-          {tagline && <div className="text-xs text-gray-500 mt-0.5">{tagline}</div>}
-          <div className="mt-2 text-xs text-gray-600 space-y-0.5">
+          <div style={{ fontSize: 20, fontWeight: 'bold', color: BLACK, lineHeight: 1.2 }}>
+            {companyName || 'Your Company Name'}
+          </div>
+          {tagline && <div style={{ fontSize: 9, color: '#666666', marginTop: 2 }}>{tagline}</div>}
+          <div style={{ marginTop: 4, fontSize: 9, color: '#444444', lineHeight: 1.6 }}>
             {companyPhone && <div>{companyPhone}</div>}
             {companyEmail && <div>{companyEmail}</div>}
           </div>
         </div>
 
-        {/* Right: INVOICE title + details */}
-        <div className="text-right ml-6">
-          <div className="text-3xl font-black text-black mb-3">INVOICE</div>
-          <table className="text-xs ml-auto">
+        {/* Right: INVOICE title + meta */}
+        <div style={{ textAlign: 'right', marginLeft: 24 }}>
+          <div style={{ fontSize: 28, fontWeight: 'bold', color: RED, marginBottom: 10, lineHeight: 1 }}>
+            INVOICE
+          </div>
+          <table style={{ marginLeft: 'auto', borderCollapse: 'collapse' }}>
             <tbody>
               <tr>
-                <td className="text-gray-500 pr-4 pb-1">Invoice #</td>
-                <td className="font-semibold text-right">{invoiceNumber || '—'}</td>
+                <td style={{ color: '#444444', fontSize: 9, paddingRight: 12, paddingBottom: 3, whiteSpace: 'nowrap' }}>Invoice #</td>
+                <td style={{ fontSize: 9, fontWeight: '600', textAlign: 'right', color: BLACK }}>{invoiceNumber || '—'}</td>
               </tr>
               <tr>
-                <td className="text-gray-500 pr-4 pb-1">Date</td>
-                <td className="font-semibold text-right">{formatDate(date) || '—'}</td>
+                <td style={{ color: '#444444', fontSize: 9, paddingRight: 12, paddingBottom: 3 }}>Date:</td>
+                <td style={{ fontSize: 9, fontWeight: '600', textAlign: 'right', color: BLACK }}>{formatDate(date) || '—'}</td>
               </tr>
               <tr>
-                <td className="text-gray-500 pr-4">Due Date</td>
-                <td className="font-semibold text-right">{formatDate(dueDate) || '—'}</td>
+                <td style={{ color: '#444444', fontSize: 9, paddingRight: 12 }}>Due On:</td>
+                <td style={{ fontSize: 9, fontWeight: '600', textAlign: 'right', color: BLACK }}>{formatDate(dueDate) || '—'}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="h-1 bg-black mx-8" />
+      {/* ══ COMPANY ADDRESS (rows 9-11) ══ */}
+      {/* (Shown as part of company block above — address is kept with company info) */}
 
-      {/* Bill To */}
-      <div className="px-8 py-5">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Bill To</div>
+      {/* ══ BILL TO (rows 14-17) ══ */}
+      <div style={{ padding: '0 28px 16px 28px' }}>
+        <div style={{ fontSize: 9, fontWeight: 'bold', color: '#444444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          Bill To
+        </div>
         {clientName ? (
-          <div>
-            <div className="font-bold text-base text-black">{clientName}</div>
-            {clientAddress && <div className="text-xs text-gray-600 mt-0.5">{clientAddress}</div>}
-            {clientPhone && <div className="text-xs text-gray-600">{clientPhone}</div>}
-            {clientEmail && <div className="text-xs text-gray-600">{clientEmail}</div>}
+          <div style={{ fontSize: 10, color: BLACK, lineHeight: 1.6 }}>
+            <div style={{ fontWeight: 'bold', fontSize: 11 }}>{clientName}</div>
+            {clientAddress && <div>{clientAddress}</div>}
+            {clientPhone && <div>{clientPhone}</div>}
+            {clientEmail && <div>{clientEmail}</div>}
           </div>
         ) : (
-          <div className="text-gray-400 text-xs">Client information will appear here.</div>
+          <div style={{ fontSize: 9, color: MGREY }}>Client information will appear here.</div>
         )}
       </div>
 
-      {/* Services Table */}
-      <div className="px-8 pb-4">
-        <table className="w-full border-collapse">
+      {/* ══ MATTER / FILE REFERENCE (row 19) ══ */}
+      {(matterReference || matterName) && (
+        <div style={{ padding: '0 28px 4px 28px' }}>
+          {matterReference && (
+            <div style={{ fontSize: 13, fontWeight: 'bold', color: BLACK, marginBottom: 2 }}>
+              {matterReference}
+            </div>
+          )}
+          {matterName && (
+            <div style={{ fontSize: 15, fontWeight: 'bold', color: BLACK, marginBottom: 8 }}>
+              {matterName}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ ROW 23: TABLE HEADER — RED bg, white text ══ */}
+      <div style={{ padding: '0 28px 4px 28px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="bg-black text-white">
-              <th className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wide">Description</th>
-              <th className="text-center py-2 px-3 text-xs font-bold uppercase tracking-wide w-12">Qty</th>
-              <th className="text-right py-2 px-3 text-xs font-bold uppercase tracking-wide w-24">Rate</th>
-              <th className="text-right py-2 px-3 text-xs font-bold uppercase tracking-wide w-24">Total</th>
+            <tr style={{ backgroundColor: RED }}>
+              <th style={{ ...thStyle, width: 70 }}>Type</th>
+              <th style={{ ...thStyle, width: 80 }}>Date</th>
+              <th style={{ ...thStyle, textAlign: 'left' }}>Notes</th>
+              <th style={{ ...thStyle, width: 60 }}>Quantity</th>
+              <th style={{ ...thStyle, width: 72, textAlign: 'right' }}>Rate</th>
+              <th style={{ ...thStyle, width: 80, textAlign: 'right' }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {services.map((service, idx) => {
               const lineTotal = (parseFloat(service.quantity) || 0) * (parseFloat(service.rate) || 0);
+              const rowBg = idx % 2 === 0 ? '#FFFFFF' : LGREY;
               return (
-                <tr
-                  key={idx}
-                  className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                >
-                  <td className="py-2 px-3 text-xs border-b border-gray-100">
-                    {service.description || <span className="text-gray-300">—</span>}
+                <tr key={idx} style={{ backgroundColor: rowBg, borderBottom: `1px solid ${MGREY}` }}>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    {service.type || <Blank />}
                   </td>
-                  <td className="py-2 px-3 text-xs text-center border-b border-gray-100">
-                    {service.quantity || '—'}
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    {service.date ? formatDate(service.date) : <Blank />}
                   </td>
-                  <td className="py-2 px-3 text-xs text-right border-b border-gray-100">
-                    {service.rate ? formatCurrency(parseFloat(service.rate)) : '—'}
+                  <td style={{ ...tdStyle, textAlign: 'left' }}>
+                    {service.description || <Blank />}
                   </td>
-                  <td className="py-2 px-3 text-xs text-right border-b border-gray-100 font-medium">
-                    {lineTotal > 0 ? formatCurrency(lineTotal) : '—'}
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    {service.quantity !== '' && service.quantity !== undefined ? service.quantity : <Blank />}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    {service.rate ? formatCurrency(parseFloat(service.rate)) : <Blank />}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '500' }}>
+                    {lineTotal > 0 ? formatCurrency(lineTotal) : <Blank />}
                   </td>
                 </tr>
               );
             })}
             {services.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-4 px-3 text-center text-gray-300 text-xs">
+                <td colSpan={6} style={{ padding: '14px 8px', textAlign: 'center', color: MGREY, fontSize: 9 }}>
                   No services added yet.
                 </td>
               </tr>
@@ -149,52 +202,133 @@ export default function InvoicePreview({ invoice, company, settings }) {
         </table>
       </div>
 
-      {/* Totals */}
-      <div className="px-8 pb-6">
-        <div className="flex justify-end">
-          <div className="w-64">
-            <div className="flex justify-between py-1 text-xs text-gray-600 border-t border-gray-200">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between py-1 text-xs text-gray-600">
-              <span>HST ({taxPct}%)</span>
-              <span>{formatCurrency(taxAmount)}</span>
-            </div>
-            <div className="flex justify-between py-2 px-3 mt-1 bg-black text-white font-bold text-sm rounded">
-              <span>TOTAL DUE</span>
-              <span>{formatCurrency(total)}</span>
-            </div>
-          </div>
-        </div>
+      {/* ══ SUMMARY ROWS (rows 40-45) ══ */}
+      <div style={{ padding: '8px 28px 16px 28px' }}>
+        <table style={{ marginLeft: 'auto', borderCollapse: 'collapse', borderLeft: `1px solid ${MGREY}` }}>
+          <tbody>
+            {/* Quantity Subtotal (row 40) */}
+            <tr>
+              <td style={summaryLabelStyle}>Quantity Subtotal</td>
+              <td style={summaryValueStyle}>{quantitySubtotal.toFixed(2)}</td>
+            </tr>
+            {/* Subtotal (row 43) */}
+            <tr>
+              <td style={summaryLabelStyle}>Subtotal</td>
+              <td style={summaryValueStyle}>{formatCurrency(subtotal)}</td>
+            </tr>
+            {/* HST (row 44) */}
+            <tr>
+              <td style={summaryLabelStyle}>HST Tax ({taxPct}.0%)</td>
+              <td style={summaryValueStyle}>{formatCurrency(taxAmount)}</td>
+            </tr>
+            {/* Total (row 45) — RED bold */}
+            <tr>
+              <td style={{ ...summaryLabelStyle, color: RED, fontWeight: 'bold', fontSize: 11 }}>Total</td>
+              <td style={{ ...summaryValueStyle, color: RED, fontWeight: 'bold', fontSize: 11 }}>{formatCurrency(total)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {/* Payment Instructions */}
-      {(paymentMethod || companyEmail) && (
-        <div className="px-8 pb-5 border-t border-gray-200 pt-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Payment Instructions</div>
-          <div className="text-xs text-gray-700 space-y-1">
-            {paymentMethod && <div><span className="font-semibold">Method:</span> {paymentMethod}</div>}
-            {companyEmail && paymentMethod?.toLowerCase().includes('emt') && (
-              <div><span className="font-semibold">Send to:</span> {companyEmail}</div>
+      {/* ══ PAYMENT DETAILS (rows 48-52) ══ */}
+      <div style={{ padding: '12px 28px 12px 28px' }}>
+        <div style={{ fontSize: 9, fontWeight: 'bold', color: BLACK, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+          Payment Details
+        </div>
+        <table style={{ borderCollapse: 'collapse', fontSize: 10 }}>
+          <tbody>
+            {paymentMethod && (
+              <tr>
+                <td style={{ fontWeight: 'bold', paddingRight: 16, paddingBottom: 3, color: BLACK, whiteSpace: 'nowrap' }}>Payment Method</td>
+                <td style={{ color: BLACK, paddingBottom: 3 }}>{paymentMethod}</td>
+              </tr>
             )}
-            {!paymentMethod?.toLowerCase().includes('emt') && companyEmail && (
-              <div><span className="font-semibold">Contact:</span> {companyEmail}</div>
+            {companyEmail && (
+              <tr>
+                <td style={{ fontWeight: 'bold', paddingRight: 16, paddingBottom: 3, color: BLACK, whiteSpace: 'nowrap' }}>Send To</td>
+                <td style={{ color: BLACK, paddingBottom: 3 }}>{companyEmail}</td>
+              </tr>
             )}
+            {(accountName || companyName) && (
+              <tr>
+                <td style={{ fontWeight: 'bold', paddingRight: 16, paddingBottom: 3, color: BLACK, whiteSpace: 'nowrap' }}>Account Name</td>
+                <td style={{ color: BLACK, paddingBottom: 3 }}>{accountName || companyName}</td>
+              </tr>
+            )}
+            {dueDate && (
+              <tr>
+                <td style={{ fontWeight: 'bold', paddingRight: 16, color: BLACK, whiteSpace: 'nowrap' }}>Due Date</td>
+                <td style={{ color: BLACK }}>{formatDate(dueDate)}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ══ RED DIVIDER BAR (row 53) ══ */}
+      <div style={{ height: 8, backgroundColor: RED, margin: '0 28px' }} />
+
+      {/* ══ SATISFACTION GUARANTEE (rows 55-56) ══ */}
+      {satisfactionGuarantee && (
+        <div style={{ padding: '12px 28px 8px 28px' }}>
+          <div style={{ fontSize: 9, fontWeight: 'bold', color: BLACK, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+            Satisfaction Guarantee
+          </div>
+          <div style={{ fontSize: 9, color: '#444444', fontStyle: 'italic', lineHeight: 1.5 }}>
+            {satisfactionGuarantee}
           </div>
         </div>
       )}
 
-      {/* Satisfaction Guarantee */}
-      {satisfactionGuarantee && (
-        <div className="px-8 pb-8 border-t border-gray-100 pt-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Satisfaction Guarantee</div>
-          <p className="text-xs text-gray-600 leading-relaxed">{satisfactionGuarantee}</p>
+      {/* ══ THANK YOU (row 58) ══ */}
+      <div style={{ padding: '12px 28px 28px 28px', textAlign: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 'bold', color: BLACK }}>
+          Thank you for your business!
         </div>
-      )}
-
-      {/* Footer */}
-      <div className="h-1 bg-black mx-8 mb-8" />
+      </div>
     </div>
   );
+}
+
+// ── Shared cell styles
+const thStyle = {
+  padding: '7px 8px',
+  fontSize: 9,
+  fontWeight: 'bold',
+  color: '#FFFFFF',
+  textAlign: 'center',
+  border: `1px solid ${MGREY}`,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+};
+
+const tdStyle = {
+  padding: '6px 8px',
+  fontSize: 9,
+  color: '#000000',
+};
+
+const summaryLabelStyle = {
+  fontSize: 9,
+  fontWeight: 'bold',
+  color: '#000000',
+  textAlign: 'right',
+  paddingRight: 16,
+  paddingTop: 4,
+  paddingBottom: 4,
+  paddingLeft: 20,
+  whiteSpace: 'nowrap',
+};
+
+const summaryValueStyle = {
+  fontSize: 9,
+  color: '#000000',
+  textAlign: 'right',
+  paddingRight: 4,
+  paddingTop: 4,
+  paddingBottom: 4,
+};
+
+function Blank() {
+  return <span style={{ color: '#CCCCCC' }}>—</span>;
 }

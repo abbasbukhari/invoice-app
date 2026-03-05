@@ -8,7 +8,7 @@ import {
   loadSettings, loadInvoices, saveDraftInvoice, loadDraftInvoice,
 } from '../utils/storage';
 
-const EMPTY_SERVICE = { description: '', quantity: 1, rate: '' };
+const EMPTY_SERVICE = { type: 'Service', date: '', description: '', quantity: 1, rate: '' };
 
 function makeEmptyInvoice(invoices, settings) {
   const today = todayISO();
@@ -21,6 +21,8 @@ function makeEmptyInvoice(invoices, settings) {
     clientPhone: '',
     clientEmail: '',
     clientAddress: '',
+    matterReference: '',
+    matterName: '',
     services: [{ ...EMPTY_SERVICE }],
   };
 }
@@ -82,7 +84,7 @@ export default function InvoiceForm({ onInvoiceChange }) {
   function addService() {
     setInvoice((prev) => ({
       ...prev,
-      services: [...prev.services, { ...EMPTY_SERVICE }],
+      services: [...prev.services, { ...EMPTY_SERVICE, date: prev.date }],
     }));
   }
 
@@ -98,9 +100,10 @@ export default function InvoiceForm({ onInvoiceChange }) {
     setInvoice(makeEmptyInvoice(invoices, settings));
   }
 
-  if (!invoice) return <div className="p-4 text-gray-500">Loading...</div>;
+  if (!invoice) return <div className="p-4 text-gray-500 text-sm">Loading...</div>;
 
   const { subtotal, taxAmount, total } = getCalculations(invoice, settings);
+  const quantitySubtotal = invoice.services.reduce((sum, s) => sum + (parseFloat(s.quantity) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -155,7 +158,7 @@ export default function InvoiceForm({ onInvoiceChange }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Client Name <span className="text-red-500">*</span>
+              Client Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -198,6 +201,33 @@ export default function InvoiceForm({ onInvoiceChange }) {
         </div>
       </div>
 
+      {/* Matter / File Reference */}
+      <div>
+        <h3 className="text-base font-bold text-gray-800 mb-3">Matter / Project Reference</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">File / Reference Number</label>
+            <input
+              type="text"
+              value={invoice.matterReference}
+              onChange={(e) => updateInvoice('matterReference', e.target.value)}
+              placeholder="e.g. 00847-Smith"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Matter / Project Name</label>
+            <input
+              type="text"
+              value={invoice.matterName}
+              onChange={(e) => updateInvoice('matterName', e.target.value)}
+              placeholder="e.g. Smith v. Anderson"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Services */}
       <div>
         <h3 className="text-base font-bold text-gray-800 mb-3">Services / Items</h3>
@@ -218,21 +248,25 @@ export default function InvoiceForm({ onInvoiceChange }) {
           onClick={addService}
           className="mt-3 inline-flex items-center gap-1 text-sm text-gray-600 border border-dashed border-gray-300 rounded px-4 py-2 hover:border-gray-500 hover:text-gray-800 transition-colors"
         >
-          + Add Service
+          + Add Row
         </button>
       </div>
 
       {/* Totals Summary */}
-      <div className="bg-gray-50 border border-gray-200 rounded p-4">
-        <div className="flex justify-between text-sm text-gray-700 mb-2">
+      <div className="bg-gray-50 border border-gray-200 rounded p-4 space-y-1.5">
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Quantity Subtotal</span>
+          <span>{quantitySubtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-gray-700">
           <span>Subtotal</span>
           <span>{formatCurrency(subtotal)}</span>
         </div>
-        <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>HST ({Math.round(settings.taxRate * 100)}%)</span>
+        <div className="flex justify-between text-sm text-gray-700">
+          <span>HST Tax ({Math.round((settings.taxRate || 0.13) * 100)}%)</span>
           <span>{formatCurrency(taxAmount)}</span>
         </div>
-        <div className="flex justify-between text-base font-bold text-black border-t border-gray-300 pt-2 mt-2">
+        <div className="flex justify-between text-base font-bold border-t border-gray-300 pt-2 mt-1" style={{ color: '#CC0000' }}>
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
         </div>

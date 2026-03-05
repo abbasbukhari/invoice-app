@@ -11,6 +11,7 @@ export default function CompanySetup() {
     email: '',
     phone: '',
     logoUrl: '',
+    accountName: '',
   });
   const [settings, setSettings] = useState({
     paymentMethod: 'EMT (e-Transfer)',
@@ -160,6 +161,19 @@ export default function CompanySetup() {
           className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:border-black ${errors.phone ? 'border-red-400' : 'border-gray-300'}`}
         />
         {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+      </div>
+
+      {/* Account Name (shown on invoice Payment Details) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">Account Name</label>
+        <input
+          type="text"
+          value={company.accountName}
+          onChange={(e) => setCompany((p) => ({ ...p, accountName: e.target.value }))}
+          placeholder="Name on your payment account (e.g. NSK Consulting)"
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
+        />
+        <p className="text-xs text-gray-400 mt-1">Appears in the Payment Details section of the invoice.</p>
       </div>
 
       <hr className="border-gray-200" />
